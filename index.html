@@ -380,7 +380,7 @@
         async function loadAttendanceData() {
             try {
                 // 실제 배포 시 아래 URL을 실제 데이터 소스로 변경
-                const dataUrl = `https://drive.google.com/uc?export=download&id=1P7T6iFxCfZH59cEs7k3Svn1WesrhOUnY`;
+                const dataUrl = `https://script.google.com/macros/s/AKfycbwhPLfmr85OkT0U6oWBGIrXlwyPJ4G1auTJUqXk4gHeK0FCABVn1QSLSx1ukL0b1WaX/exec?month=${year}-${String(month + 1).padStart(2, '0')}`;
                 
                 // 개발 환경에서는 더미 데이터 사용
                 const isDevelopment = false; // 배포 시 false로 변경
