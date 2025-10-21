@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스터디 출석표 (오프 제도 포함)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', Arial, sans-serif; 
+            margin: 0;
+            padding: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            text-align: center; 
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .last-update {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .rules-box {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+        .rules-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .rules-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .rules-box li {
+            margin: 5px 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #d32f2f;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 30px;
+            font-size: 14px;
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px 8px; 
+            text-align: center; 
+        }
+        th { 
+            background-color: #4CAF50;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        th.member-name {
+            background-color: #2196F3;
+            min-width: 130px;
+        }
+        td.member-name-cell {
+            min-width: 130px;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* 출석 상태별 스타일 */
+        .attended { 
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .absent { 
+            background-color: #ffebee;
+            color: #c62828;
+            font-weight: bold;
+        }
+        .off {
+            background-color: #fff9c4;
+            color: #f57f17;
+            font-weight: bold;
+        }
+        /* 🆕 장기오프 스타일 추가 */
+        .long-off {
+            background-color: #e1f5fe;
+            color: #0277bd;
+            font-weight: bold;
+        }
+        .future { 
+            background-color: #f5f5f5;
+            color: #999;
+        }
+        
+        .summary { 
+            margin-top: 30px; 
+            padding: 20px; 
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background-color: #f1f8e9;
+        }
+        .summary h2 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .member-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .member-card {
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .member-card.warning {
+            border-left-color: #ff9800;
+        }
+        .member-card.penalty {
+            border-left-color: #f44336;
+        }
+        .warning-text { 
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .penalty-text { 
+            color: #f44336;
+            font-weight: bold;
+        }
+        .off-text {
+            color: #f57f17;
+            font-weight: normal;
+        }
+        /* 🆕 장기오프 텍스트 스타일 */
+        .long-off-text {
+            color: #0277bd;
+            font-weight: normal;
+        }
+        .download-icon {
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            margin-left: 5px;
+        }
+        .download-icon:hover {
+            transform: scale(1.2);
+            display: inline-block;
+        }
+        
+        /* 범례 */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            td.member-name-cell {
+                white-space: normal;
+                word-break: keep-all;
+            }
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+            th, td {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+            .member-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 인쇄용 스타일 */
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+            th {
+                background-color: #4CAF50 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .rules-box {
+                page-break-inside: avoid;
+            }
+            .summary {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 스터디 출석표 <span id="currentMonth"></span></h1>
+        <div class="last-update">
+            마지막 업데이트: <span id="lastUpdate">-</span>
+        </div>
+
+        <!-- 규칙 안내 박스 -->
+        <div class="rules-box">
+            <h3>📋 출석 규칙</h3>
+            <ul>
+                <li>✅ <strong>출석</strong>: 인증 사진이 있는 경우</li>
+                <li>🏖️ <strong>오프</strong>: OFF.md 파일로 오프 선언 (주당 최대 3회)</li>
+                <li>🏝️ <strong>장기오프</strong>: 구글 폼으로 사전 신청한 장기 오프 (주당 오프 횟수 제한에서 제외)</li>
+                <li>✗ <strong>결석</strong>: 미제출 또는 인증 실패</li>
+                <li>⚠️ <strong>경고</strong>: 3회 결석 시 경고</li>
+                <li>🚨 <strong>벌칙</strong>: 4회 이상 결석 시 벌칙 대상</li>
+            </ul>
+        </div>
+
+        <!-- 범례 -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box attended">✓</div>
+                <span>출석</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box off">🏖️</div>
+                <span>오프</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box long-off">🏝️</div>
+                <span>장기오프</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box absent">✗</div>
+                <span>결석</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box future">-</div>
+                <span>미래</span>
+            </div>
+        </div>
+
+        <!-- 로딩 인디케이터 -->
+        <div id="loadingIndicator" class="loading">
+            ⏳ 데이터 로드 중...
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div id="errorContainer" class="error" style="display: none;">
+            ❌ 데이터 로드 실패<br>
+            <span id="errorMessage" style="font-size: 14px;"></span>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <div id="contentContainer" style="display: none;">
+            <table>
+                <thead>
+                    <tr id="dateHeaders">
+                        <th class="member-name">조원명</th>
+                        <!-- 날짜별 헤더는 JS로 생성 -->
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                    <!-- 데이터는 JS로 생성 -->
+                </tbody>
+            </table>
+
+            <!-- 요약 정보 -->
+            <div class="summary">
+                <h2>📊 10월 출석 요약 (1일 ~ <span id="totalDays">0</span>일)</h2>
+                <div class="member-summary" id="memberSummary">
+                    <!-- 조원별 요약은 JS로 생성 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 설정 =====
+        const year = 2025;
+        const month = 9; // 0-based (0=1월, 9=10월)
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const currentDay = new Date().getDate();
+
+        // ===== 유틸리티 함수 =====
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${y}-${m}-${d} ${h}:${min}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== 테이블 헤더 생성 =====
+        function renderDateHeaders() {
+            const headerRow = document.getElementById('dateHeaders');
+            
+            // 날짜별 헤더
+            for (let i = 1; i <= daysInMonth; i++) {
+                const th = document.createElement('th');
+                th.textContent = i;
+                
+                // 오늘 날짜 강조
+                if (i === currentDay) {
+                    th.style.backgroundColor = '#FFA726';
+                }
+                
+                headerRow.appendChild(th);
+            }
+            
+            // 통계 헤더
+            const totalAttendedHeader = document.createElement('th');
+            totalAttendedHeader.textContent = '출석';
+            totalAttendedHeader.style.backgroundColor = '#66BB6A';
+            headerRow.appendChild(totalAttendedHeader);
+            
+            const totalOffHeader = document.createElement('th');
+            totalOffHeader.textContent = '오프';
+            totalOffHeader.style.backgroundColor = '#FDD835';
+            headerRow.appendChild(totalOffHeader);
+            
+            const totalLongOffHeader = document.createElement('th');
+            totalLongOffHeader.textContent = '장기오프';
+            totalLongOffHeader.style.backgroundColor = '#42A5F5';
+            headerRow.appendChild(totalLongOffHeader);
+            
+            const totalAbsentHeader = document.createElement('th');
+            totalAbsentHeader.textContent = '결석';
+            totalAbsentHeader.style.backgroundColor = '#EF5350';
+            headerRow.appendChild(totalAbsentHeader);
+        }
+
+        // ===== 출석표 렌더링 =====
+        function renderAttendanceTable(data) {
+            const tableBody = document.getElementById('attendanceTableBody');
+            const memberSummaryDiv = document.getElementById('memberSummary');
+            
+            tableBody.innerHTML = '';
+            memberSummaryDiv.innerHTML = '';
+
+            // 실제 진행된 일수 (오늘까지)
+            document.getElementById('totalDays').textContent = currentDay;
+
+            for (const memberName in data) {
+                const member = data[memberName];
+                const row = tableBody.insertRow();
+
+                // 조원명 셀
+                const nameCell = row.insertCell();
+                nameCell.textContent = memberName;
+                nameCell.className = 'member-name-cell';
+                nameCell.style.fontWeight = 'bold';
+                nameCell.style.textAlign = 'left';
+                nameCell.style.paddingLeft = '15px';
+                nameCell.title = memberName;
+
+                // 실제 출석/오프/장기오프/결석 계산
+                let calculatedAttendance = 0;
+                let calculatedOff = 0;
+                let calculatedLongOff = 0;
+                let calculatedAbsence = 0;
+
+                // 날짜별 출석/오프/장기오프/결석 셀
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayStatus = member.기록 && member.기록[i.toString()];
+                    const cell = row.insertCell();
+
+                    if (i > currentDay) {
+                        // 미래 날짜
+                        cell.textContent = '-';
+                        cell.classList.add('future');
+                        cell.title = '미래 날짜';
+                    } else if (dayStatus) {
+                        // 기록 존재
+                        if (dayStatus.status === 'O') {
+                            // 출석
+                            calculatedAttendance++;
+                            const checkmark = document.createElement('span');
+                            checkmark.textContent = '✓';
+                            checkmark.style.color = '#2e7d32';
+                            checkmark.style.fontWeight = 'bold';
+                            cell.appendChild(checkmark);
+                            
+                            if (dayStatus.link) {
+                                const link = document.createElement('a');
+                                link.href = dayStatus.link;
+                                link.textContent = '📁';
+                                link.className = 'download-icon';
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                const fileCount = dayStatus.fileCount || 1;
+                                link.title = `폴더 열기 (${fileCount}개 파일)`;
+                                cell.appendChild(link);
+                            }
+                            cell.classList.add('attended');
+                        } else if (dayStatus.status === 'OFF') {
+                            // 일반 오프
+                            calculatedOff++;
+                            cell.textContent = '🏖️';
+                            cell.classList.add('off');
+                            cell.title = '오프';
+                        } else if (dayStatus.status === 'LONG_OFF') {
+                            // 🆕 장기오프 처리
+                            calculatedLongOff++;
+                            cell.textContent = '🏝️';
+                            cell.classList.add('long-off');
+                            const reason = dayStatus.reason || '장기오프';
+                            cell.title = reason;
+                        } else {
+                            // 결석
+                            calculatedAbsence++;
+                            cell.textContent = '✗';
+                            cell.classList.add('absent');
+                            cell.title = '결석';
+                        }
+                    } else {
+                        // 기록 없음 = 결석
+                        calculatedAbsence++;
+                        cell.textContent = '✗';
+                        cell.classList.add('absent');
+                        cell.title = '인증 미제출';
+                    }
+                }
+
+                // 총 출석 셀
+                const totalAttendedCell = row.insertCell();
+                totalAttendedCell.textContent = calculatedAttendance;
+                totalAttendedCell.style.fontWeight = 'bold';
+                totalAttendedCell.style.backgroundColor = '#e8f5e9';
+
+                // 총 오프 셀
+                const totalOffCell = row.insertCell();
+                totalOffCell.textContent = calculatedOff;
+                totalOffCell.style.fontWeight = 'bold';
+                totalOffCell.style.backgroundColor = '#fff9c4';
+
+                // 🆕 총 장기오프 셀
+                const totalLongOffCell = row.insertCell();
+                totalLongOffCell.textContent = calculatedLongOff;
+                totalLongOffCell.style.fontWeight = 'bold';
+                totalLongOffCell.style.backgroundColor = '#e1f5fe';
+
+                // 총 결석 셀
+                const totalAbsentCell = row.insertCell();
+                totalAbsentCell.textContent = calculatedAbsence;
+                totalAbsentCell.style.fontWeight = 'bold';
+                
+                if (calculatedAbsence >= 4) {
+                    totalAbsentCell.style.backgroundColor = '#ffcdd2';
+                } else if (calculatedAbsence === 3) {
+                    totalAbsentCell.style.backgroundColor = '#ffe0b2';
+                }
+
+                // 조원별 요약 카드 생성
+                const memberCard = document.createElement('div');
+                memberCard.className = 'member-card';
+                
+                if (calculatedAbsence >= 4) {
+                    memberCard.classList.add('penalty');
+                } else if (calculatedAbsence === 3) {
+                    memberCard.classList.add('warning');
+                }
+
+                let statusText = '';
+                if (calculatedAbsence >= 4) {
+                    statusText = `<span class="penalty-text">🚨 벌칙 대상 (${calculatedAbsence}회 결석)</span>`;
+                } else if (calculatedAbsence === 3) {
+                    statusText = `<span class="warning-text">⚠️ 경고 (${calculatedAbsence}회 결석)</span>`;
+                } else {
+                    statusText = `<span style="color: #4CAF50;">✅ 정상</span>`;
+                }
+
+                memberCard.innerHTML = `
+                    <strong style="font-size: 16px;">${escapeHtml(memberName)}</strong><br>
+                    출석: <strong style="color: #2e7d32;">${calculatedAttendance}회</strong> / 
+                    오프: <strong class="off-text">${calculatedOff}회</strong> / 
+                    장기오프: <strong class="long-off-text">${calculatedLongOff}회</strong> / 
+                    결석: <strong style="color: #c62828;">${calculatedAbsence}회</strong><br>
+                    ${statusText}
+                `;
+                memberSummaryDiv.appendChild(memberCard);
+            }
+        }
+
+        // ===== 데이터 로드 =====
+        async function loadAttendanceData() {
+            try {
+                // 실제 배포 시 아래 URL을 실제 데이터 소스로 변경
+                const dataUrl = `https://script.google.com/macros/s/AKfycbwhPLfmr85OkT0U6oWBGIrXlwyPJ4G1auTJUqXk4gHeK0FCABVn1QSLSx1ukL0b1WaX/exec?month=${year}-${String(month + 1).padStart(2, '0')}`;
+                
+                // 개발 환경에서는 더미 데이터 사용
+                const isDevelopment = false; // 배포 시 false로 변경
+                
+                let data;
+                if (isDevelopment) {
+                    // 더미 데이터
+                    data = generateDummyData();
+                } else {
+                    const response = await fetch(dataUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    data = await response.json();
+                }
+
+                // UI 렌더링
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('contentContainer').style.display = 'block';
+                
+                renderAttendanceTable(data);
+                
+                // 마지막 업데이트 시간
+                document.getElementById('lastUpdate').textContent = formatDate(new Date());
+
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('errorContainer').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        }
+
+        // ===== 더미 데이터 생성 (테스트용) =====
+        function generateDummyData() {
+            const members = ['센트룸', '길', 'what', '머리 빗는 네오', '녹동', '오늘의너굴이', 'Dann', '보노보노', 'Magnus'];
+            const data = {};
+
+            members.forEach((name, idx) => {
+                const records = {};
+
+                for (let day = 1; day <= currentDay; day++) {
+                    const rand = Math.random();
+                    let status, link, fileCount, reason;
+                    
+                    if (rand < 0.1) {
+                        // 10% 확률로 장기오프
+                        status = 'LONG_OFF';
+                        link = '';
+                        fileCount = 0;
+                        reason = '여행';
+                    } else if (rand < 0.25) {
+                        // 15% 확률로 일반 오프
+                        status = 'OFF';
+                        link = '';
+                        fileCount = 0;
+                    } else if (rand < 0.35) {
+                        // 10% 확률로 결석
+                        status = 'X';
+                        link = '';
+                        fileCount = 0;
+                    } else {
+                        // 65% 확률로 출석
+                        status = 'O';
+                        link = `https://drive.google.com/drive/folders/${name}_${day}_folder`;
+                        fileCount = Math.floor(Math.random() * 5) + 1;
+                    }
+                    
+                    records[day.toString()] = {
+                        status: status,
+                        link: link,
+                        fileCount: fileCount,
+                        reason: reason || ''
+                    };
+                }
+
+                data[name] = {
+                    기록: records
+                };
+            });
+
+            return data;
+        }
+
+        // ===== 초기화 =====
+        document.addEventListener('DOMContentLoaded', () => {
+            // 현재 월 표시
+            document.getElementById('currentMonth').textContent = `${year}년 ${month + 1}월`;
+            
+            // 헤더 생성
+            renderDateHeaders();
+            
+            // 데이터 로드
+            loadAttendanceData();
+        });
+    </script>
+</body>
+</html>
