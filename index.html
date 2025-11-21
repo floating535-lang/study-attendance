@@ -384,9 +384,9 @@
   <div class="container">
     <!-- 탭 네비게이션 -->
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('attendance')">  출석표</button>
-      <button class="tab" onclick="switchTab('feed')">  스터디 피드</button>
-      <button class="tab" onclick="switchTab('summary')">  월간 요약</button>
+      <button class="tab active" onclick="switchTab('attendance')">📊 출석표</button>
+      <button class="tab" onclick="switchTab('feed')">📰 스터디 피드</button>
+      <button class="tab" onclick="switchTab('summary')">📈 월간 요약</button>
     </div>
 
     <!-- 출석표 탭 -->
@@ -686,6 +686,21 @@
       tbody.innerHTML = html;
     }
 
+    // URL에서 파일 ID 추출
+    function extractFileId(url) {
+      if (!url) return null;
+
+      // https://drive.google.com/file/d/FILE_ID/view 형식
+      let match = url.match(/\/file\/d\/([^\/]+)/);
+      if (match) return match[1];
+
+      // https://drive.google.com/open?id=FILE_ID 형식
+      match = url.match(/[?&]id=([^&]+)/);
+      if (match) return match[1];
+
+      return null;
+    }
+
     // 일일 브리핑 복사 (파일 내용 포함)
     async function copyDailyBriefing() {
       const yesterday = new Date();
@@ -693,78 +708,64 @@
       const day = yesterday.getDate();
       const month = yesterday.getMonth() + 1;
 
-      showToast('파일 내용을 가져오는 중...', 0);
+      showToast('브리핑을 생성하는 중...', 0);
 
       try {
-        // 어제 날짜의 파일 URL 수집
-        const fileData = [];
-
-        Object.keys(globalData).forEach(name => {
-          const record = globalData[name].기록[day];
-          if (record && record.status === 'O' && record.files) {
-            record.files.forEach(file => {
-              fileData.push({
-                name: name,
-                fileName: file.name,
-                fileUrl: file.url
-              });
-            });
-          }
-        });
-
-        if (fileData.length === 0) {
-          showToast('어제 제출된 파일이 없습니다.', 3000);
-          return;
-        }
-
-        // 서버에 파일 내용 요청
-        const response = await fetch(`${SCRIPT_URL}?action=getFileContents`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ files: fileData })
-        });
-
-        const result = await response.json();
-
-        if (result.error) {
-          throw new Error(result.message);
-        }
-
-        // 브리핑 텍스트 생성
         let text = `[${month}/${day} 어제의 공부 토픽 🔥]\n\n`;
+        let hasContent = false;
 
-        Object.keys(globalData).forEach(name => {
+        // 각 멤버별로 처리
+        for (const name of Object.keys(globalData)) {
           const record = globalData[name].기록[day];
+
           if (record) {
-            if (record.status === 'O') {
+            if (record.status === 'O' && record.files && record.files.length > 0) {
+              hasContent = true;
               text += `${name}:\n`;
 
-              // 파일 내용 추가
-              const memberContents = result.contents.filter(c => c.name === name);
-              if (memberContents.length > 0) {
-                memberContents.forEach(content => {
-                  if (content.content) {
-                    text += `  📄 ${content.fileName}:\n`;
-                    text += `     ${content.content}\n`;
-                  } else {
-                    text += `  📄 ${content.fileName} (내용을 가져올 수 없음)\n`;
+              // 각 파일의 내용 가져오기
+              for (const file of record.files) {
+                const fileId = extractFileId(file.url);
+
+                if (fileId) {
+                  try {
+                    const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
+                    const result = await response.json();
+
+                    if (!result.error && result.content) {
+                      text += `  📄 ${file.name}:\n`;
+                      const lines = result.content.split('\n');
+                      lines.forEach(line => {
+                        text += `     ${line}\n`;
+                      });
+                    } else {
+                      text += `  📄 ${file.name}: (내용을 가져올 수 없음)\n`;
+                    }
+                  } catch (error) {
+                    text += `  📄 ${file.name}: (오류)\n`;
                   }
-                });
-              } else {
-                text += `  (파일 내용 없음)\n`;
+                } else {
+                  text += `  📄 ${file.name}\n`;
+                }
               }
               text += '\n';
             } else if (record.status === 'LONG_OFF') {
+              hasContent = true;
               text += `${name}: 장기오프 (${record.reason || '사유 없음'})\n\n`;
             } else {
+              hasContent = true;
               text += `${name}: 미제출\n\n`;
             }
           } else {
+            hasContent = true;
             text += `${name}: 기록 없음\n\n`;
           }
-        });
+        }
+
+        if (!hasContent) {
+          showToast('어제 제출된 내역이 없습니다.', 3000);
+          return;
+        }
 
         // 클립보드에 복사
         await navigator.clipboard.writeText(text);
