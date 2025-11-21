@@ -5,24 +5,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>스터디 출석 현황</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary-color: #4CAF50;
       --primary-dark: #388E3C;
-      --bg-color: #f5f7fa;
+      --bg-color: #f5f5f5;
       --card-bg: #ffffff;
-      --text-color: #333333;
-      --border-radius: 12px;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      --text-color: #333;
+      --border-color: #e0e0e0;
     }
 
     body {
-      font-family: 'Noto Sans KR', sans-serif;
-      margin: 0;
-      padding: 0;
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
+      margin: 0;
+      padding: 20px;
       line-height: 1.6;
     }
 
@@ -35,19 +33,16 @@
     header {
       text-align: center;
       margin-bottom: 30px;
-      padding: 20px 0;
     }
 
     h1 {
       color: var(--primary-dark);
-      margin: 0;
-      font-size: 2rem;
+      margin-bottom: 10px;
     }
 
     .last-updated {
-      color: #666;
       font-size: 0.9rem;
-      margin-top: 5px;
+      color: #666;
     }
 
     /* 탭 네비게이션 */
@@ -55,44 +50,54 @@
       display: flex;
       justify-content: center;
       margin-bottom: 20px;
-      background: var(--card-bg);
-      padding: 10px;
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
+      gap: 10px;
     }
 
     .tab-btn {
       padding: 10px 20px;
       border: none;
-      background: none;
-      font-size: 1rem;
-      font-weight: 500;
+      background-color: #ddd;
+      border-radius: 20px;
       cursor: pointer;
-      color: #666;
-      border-radius: 8px;
-      transition: all 0.2s;
+      font-weight: bold;
+      transition: all 0.3s;
     }
 
     .tab-btn.active {
       background-color: var(--primary-color);
       color: white;
+      transform: scale(1.05);
     }
 
     .tab-content {
       display: none;
+      animation: fadeIn 0.5s;
     }
 
     .tab-content.active {
       display: block;
     }
 
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     /* 카드 스타일 */
     .card {
-      background: var(--card-bg);
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
+      background-color: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       padding: 20px;
       margin-bottom: 20px;
+      overflow-x: auto;
     }
 
     .card-header {
@@ -100,54 +105,45 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 15px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 2px solid var(--bg-color);
       padding-bottom: 10px;
     }
 
     .card-title {
       font-size: 1.2rem;
-      font-weight: 700;
+      font-weight: bold;
       color: var(--primary-dark);
       margin: 0;
     }
 
-    /* 출석표 테이블 */
-    .table-container {
-      overflow-x: auto;
-    }
-
+    /* 테이블 스타일 */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
+      min-width: 600px;
     }
 
     th,
     td {
       padding: 12px 8px;
       text-align: center;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-color);
     }
 
     th {
       background-color: #f8f9fa;
       font-weight: 600;
       color: #555;
-      white-space: nowrap;
     }
 
-    /* 상태 아이콘 및 색상 */
+    tr:hover {
+      background-color: #f1f8e9;
+    }
+
+    /* 상태 표시 */
     .status-o {
-      color: var(--primary-color);
+      color: #4CAF50;
       font-weight: bold;
-    }
-
-    .status-off {
-      color: #FF9800;
-    }
-
-    .status-long-off {
-      color: #2196F3;
     }
 
     .status-x {
@@ -155,12 +151,29 @@
       font-weight: bold;
     }
 
+    .status-off {
+      color: #2196F3;
+    }
+
+    .status-long-off {
+      color: #9C27B0;
+    }
+
     .status-future {
       color: #ccc;
     }
 
-    .status-today {
-      background-color: #e8f5e9;
+    /* 범례 */
+    .legend {
+      display: flex;
+      gap: 15px;
+      font-size: 0.9rem;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     /* 스터디 피드 스타일 */
@@ -175,8 +188,14 @@
       gap: 15px;
       padding: 15px;
       border: 1px solid #eee;
-      border-radius: 8px;
-      background: #fff;
+      border-radius: 10px;
+      background-color: #fff;
+      transition: transform 0.2s;
+    }
+
+    .feed-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .feed-avatar {
@@ -190,7 +209,6 @@
       justify-content: center;
       font-weight: bold;
       font-size: 1.2rem;
-      flex-shrink: 0;
     }
 
     .feed-content {
@@ -205,28 +223,27 @@
 
     .feed-name {
       font-weight: bold;
-      font-size: 1rem;
+      color: #333;
     }
 
     .feed-date {
+      font-size: 0.85rem;
       color: #888;
-      font-size: 0.8rem;
     }
 
     .feed-files {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 8px;
     }
 
     .file-chip {
       display: inline-flex;
       align-items: center;
-      padding: 4px 10px;
-      background-color: #f1f3f4;
-      border-radius: 16px;
-      font-size: 0.85rem;
+      background-color: #f0f0f0;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.9rem;
       color: #333;
       text-decoration: none;
       transition: background-color 0.2s;
@@ -445,6 +462,79 @@
       if (!globalData) return;
 
       renderAttendanceTable();
+      renderFeed();
+      renderSummary();
+      renderWeeklyOffTable();
+    }
+
+    // 1. 출석표 렌더링 (주간 목표제 반영)
+    function renderAttendanceTable() {
+      const table = document.getElementById('attendanceTable');
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+
+      // 헤더 생성
+      let thead = '<thead><tr><th>이름</th><th>이번 주<br>진행</th>';
+      for (let d = 1; d <= lastDay; d++) {
+        const date = new Date(year, month, d);
+        const dayName = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+        const isToday = d === today.getDate();
+        const style = isToday ? 'background-color: #e8f5e9; color: var(--primary-dark);' : '';
+        thead += `<th style="${style}">${d}<br><small>${dayName}</small></th>`;
+      }
+      thead += '</tr></thead>';
+
+      // 바디 생성
+      let tbody = '<tbody>';
+      Object.keys(globalData).forEach(name => {
+        const progress = globalData[name].이번주진행 || { count: 0, target: 4 };
+        const progressText = `${progress.count}/${progress.target}`;
+        const isPass = progress.count >= progress.target;
+        const progressStyle = isPass ? 'color:green; font-weight:bold;' : 'color:#FF9800;';
+
+        tbody += `<tr>
+        <td style="font-weight:bold;">${name}</td>
+        <td style="${progressStyle}">${progressText}</td>`;
+
+        for (let d = 1; d <= lastDay; d++) {
+          const record = globalData[name].기록[d];
+          let cellContent = '<span style="color:#eee;">-</span>'; // 기본값: 흐린 대시
+          let cellClass = '';
+
+          if (record) {
+            if (record.status === 'O') {
+              cellContent = '✓';
+              cellClass = 'status-o';
+            } else if (record.status === 'OFF') {
+              cellContent = '🏖️';
+              cellClass = 'status-off';
+            } else if (record.status === 'LONG_OFF') {
+              cellContent = '🏝️';
+              cellClass = 'status-long-off';
+            } else if (record.status === 'WEEKLY_FAIL') {
+              cellContent = '🚨'; // 주간 미달 표시 (보통 일요일에 찍힘)
+              cellClass = 'status-x';
+            } else if (record.status === 'MISSING') {
+              cellContent = '·'; // 미제출은 점으로 표시
+              cellClass = 'status-future';
+            }
+          }
+
+          tbody += `<td class="${cellClass}">${cellContent}</td>`;
+        }
+        tbody += '</tr>';
+      });
+      tbody += '</tbody>';
+
+      table.innerHTML = thead + tbody;
+    }
+
+    // 2. 스터디 피드 렌더링
+    function renderFeed() {
+      const feedList = document.getElementById('feedList');
+      const today = new Date();
       const feedItems = [];
 
       // 모든 멤버의 기록을 날짜 역순으로 수집
@@ -613,14 +703,16 @@
               19: { status: 'O', files: [{ name: 'IMG_1234.jpg', url: '#' }] },
               18: { status: 'OFF', files: [] }
             },
-            출석: 2, 오프: 1, 장기오프: 0, 결석: 0
+            출석: 2, 오프: 1, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 2, target: 4, longOff: 0 }
           },
           '길': {
             기록: {
               20: { status: 'O', files: [{ name: '정보처리기사_기출.pdf', url: '#' }] },
               19: { status: 'X', files: [] }
             },
-            출석: 1, 오프: 0, 장기오프: 0, 결석: 1
+            출석: 1, 오프: 0, 장기오프: 0, 결석: 1,
+            이번주진행: { count: 1, target: 4, longOff: 0 }
           }
         };
         // 나머지 멤버 더미 데이터 추가 가능
