@@ -417,11 +417,21 @@
 
   <script>
     // 설정
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_XXXXXXXX/exec'; // 배포 후 URL 교체 필요
+    // ⚠️ 중요: 배포된 Google Apps Script Web App URL을 아래에 붙여넣으세요.
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhPLfmr85OkT0U6oWBGIrXlwyPJ4G1auTJUqXk4gHeK0FCABVn1QSLSx1ukL0b1WaX/exec';
     let globalData = null;
 
     // 초기화
     document.addEventListener('DOMContentLoaded', () => {
+      if (SCRIPT_URL === 'YOUR_WEB_APP_URL_HERE' || SCRIPT_URL.includes('AKfycbz')) {
+        document.getElementById('loading').innerHTML = `
+          <div style="color:red; font-weight:bold;">
+            ⚠️ 설정 오류<br>
+            index.html 파일의 SCRIPT_URL 변수에<br>
+            배포된 웹 앱 URL을 입력해주세요.
+          </div>`;
+        return;
+      }
       fetchData();
     });
 
@@ -437,13 +447,12 @@
     // 데이터 가져오기
     async function fetchData() {
       try {
-        // 실제 배포 시에는 fetch(SCRIPT_URL) 사용
-        // 개발용 더미 데이터
-        // const response = await fetch(SCRIPT_URL);
-        // globalData = await response.json();
+        // 실제 데이터 가져오기 (?format=json)
+        const response = await fetch(SCRIPT_URL + '?format=json');
+        globalData = await response.json();
 
-        // 테스트를 위한 더미 데이터 로드 (실제 환경에서는 위 코드 사용)
-        await loadDummyData();
+        // 테스트용 더미 데이터 (필요시 주석 해제)
+        // await loadDummyData();
 
         renderAll();
         document.getElementById('loading').style.display = 'none';
@@ -683,23 +692,22 @@
         }
       });
 
-      text += `\n다들 고생하셨습니다! 서로의 공부 내용에 대해 이야기 나눠보세요 👇\n[웹페이지 링크]`;
-
+      // 클립보드에 복사
       navigator.clipboard.writeText(text).then(() => {
-        alert('클립보드에 복사되었습니다! 카톡방에 붙여넣기 하세요.');
+        alert('📋 복사 완료!\n카카오톡에 붙여넣기 하세요.');
       }).catch(err => {
         console.error('복사 실패:', err);
-        alert('복사에 실패했습니다.');
+        alert('복사에 실패했습니다. 콘솔을 확인해주세요.');
       });
     }
 
     // 더미 데이터 로드 (테스트용)
     function loadDummyData() {
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         globalData = {
           '센트룸': {
             기록: {
-              20: { status: 'O', files: [{ name: 'React_Hooks.md', url: '#' }, { name: 'Algorithm_DFS.js', url: '#' }] },
+              20: { status: 'O', files: [{ name: 'IMG_1234.jpg', url: '#' }] },
               19: { status: 'O', files: [{ name: 'IMG_1234.jpg', url: '#' }] },
               18: { status: 'OFF', files: [] }
             },
@@ -713,9 +721,43 @@
             },
             출석: 1, 오프: 0, 장기오프: 0, 결석: 1,
             이번주진행: { count: 1, target: 4, longOff: 0 }
+          },
+          'what': {
+            기록: { 20: { status: 'O', files: [{ name: 'SystemDesign.pdf', url: '#' }] } },
+            출석: 1, 오프: 0, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 1, target: 4, longOff: 0 }
+          },
+          '머리 빗는 네오': {
+            기록: { 20: { status: 'LONG_OFF', files: [] }, 19: { status: 'LONG_OFF', files: [] } },
+            출석: 0, 오프: 0, 장기오프: 2, 결석: 0,
+            이번주진행: { count: 0, target: 2, longOff: 2 }
+          },
+          '녹동': {
+            기록: { 20: { status: 'O', files: [{ name: 'TIL.md', url: '#' }] }, 18: { status: 'O', files: [{ name: 'Study.jpg', url: '#' }] } },
+            출석: 2, 오프: 0, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 2, target: 4, longOff: 0 }
+          },
+          '오늘의너굴이': {
+            기록: {},
+            출석: 0, 오프: 0, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 0, target: 4, longOff: 0 }
+          },
+          'Dann': {
+            기록: { 20: { status: 'OFF', files: [] } },
+            출석: 0, 오프: 1, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 0, target: 4, longOff: 0 }
+          },
+          '보노보노': {
+            기록: { 20: { status: 'O', files: [{ name: 'Shell_Script.sh', url: '#' }] }, 19: { status: 'O', files: [{ name: 'Docker.yml', url: '#' }] }, 18: { status: 'O', files: [{ name: 'K8s.yaml', url: '#' }] }, 17: { status: 'O', files: [{ name: 'Terraform.tf', url: '#' }] } },
+            출석: 4, 오프: 0, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 4, target: 4, longOff: 0 }
+          },
+          'Magnus': {
+            기록: { 20: { status: 'MISSING', files: [] } },
+            출석: 0, 오프: 0, 장기오프: 0, 결석: 0,
+            이번주진행: { count: 0, target: 4, longOff: 0 }
           }
         };
-        // 나머지 멤버 더미 데이터 추가 가능
         resolve();
       });
     }
