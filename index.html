@@ -159,6 +159,11 @@
       border-left: 2px solid var(--warning) !important;
     }
 
+    .weekly-header {
+      background-color: var(--warning) !important;
+      color: white !important;
+    }
+
     .legend {
       display: flex;
       gap: 20px;
@@ -492,8 +497,8 @@
       const month = today.getMonth();
       const lastDay = new Date(year, month + 1, 0).getDate();
 
-      // 헤더 생성 (주차별 결산 칸 포함)
-      let thead = '<thead><tr><th rowspan="2">이름</th><th rowspan="2">이번주<br>진행</th>';
+      // 헤더 생성
+      let thead = '<thead><tr><th>이름</th><th>이번주<br>진행</th>';
 
       for (let d = 1; d <= lastDay; d++) {
         const date = new Date(year, month, d);
@@ -502,9 +507,9 @@
         const style = isToday ? 'background-color: #e8f5e9; color: var(--primary-dark);' : '';
         thead += `<th style="${style}">${d}<br><small>${dayName}</small></th>`;
 
-        // 일요일 뒤에 주간 결산 칸 추가
+        // 일요일 뒤에 주간 결산 칸 추가 (주황색 배경)
         if (dayName === '일') {
-          thead += '<th class="weekly-column"><small>주간</small><br>결산</th>';
+          thead += '<th class="weekly-header"><small>주간</small><br>결산</th>';
         }
       }
       thead += '</tr></thead>';
@@ -524,22 +529,27 @@
         for (let d = 1; d <= lastDay; d++) {
           const date = new Date(year, month, d);
           const dayName = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-          const record = globalData[name].기록[d];
+          const records = globalData[name].기록[d]; // 배열
 
           let cellContent = '<span style="color:#eee;">-</span>';
           let cellClass = '';
 
-          // 일반 출석 기록 표시 (WEEKLY_FAIL/PASS 제외)
-          if (record && record.status !== 'WEEKLY_FAIL' && record.status !== 'WEEKLY_PASS') {
-            if (record.status === 'O') {
-              cellContent = '✓';
-              cellClass = 'status-o';
-            } else if (record.status === 'LONG_OFF') {
-              cellContent = '🏝️';
-              cellClass = 'status-long-off';
-            } else if (record.status === 'MISSING') {
-              cellContent = '·';
-              cellClass = 'status-future';
+          // 배열로 저장된 기록 처리
+          if (records && Array.isArray(records)) {
+            // 일반 출석 기록 우선 표시 (O, LONG_OFF, MISSING)
+            const normalRecord = records.find(r => r.status === 'O' || r.status === 'LONG_OFF' || r.status === 'MISSING');
+
+            if (normalRecord) {
+              if (normalRecord.status === 'O') {
+                cellContent = '✓';
+                cellClass = 'status-o';
+              } else if (normalRecord.status === 'LONG_OFF') {
+                cellContent = '🏝️';
+                cellClass = 'status-long-off';
+              } else if (normalRecord.status === 'MISSING') {
+                cellContent = '·';
+                cellClass = 'status-future';
+              }
             }
           }
 
@@ -550,29 +560,18 @@
             let weeklyContent = '<span style="color:#ddd;">-</span>';
             let weeklyClass = '';
 
-            // 해당 일요일의 모든 기록 확인하여 WEEKLY_FAIL/PASS 개수 세기
-            const allDayRecords = globalData[name].기록;
-            let failCount = 0;
-            let hasPass = false;
+            if (records && Array.isArray(records)) {
+              // WEEKLY_FAIL 개수 세기
+              const failRecords = records.filter(r => r.status === 'WEEKLY_FAIL');
+              const passRecords = records.filter(r => r.status === 'WEEKLY_PASS');
 
-            // 같은 날짜(일요일)의 모든 상태 확인
-            Object.keys(allDayRecords).forEach(dayKey => {
-              if (parseInt(dayKey) === d) {
-                const dayRecord = allDayRecords[dayKey];
-                if (dayRecord.status === 'WEEKLY_FAIL') {
-                  failCount++;
-                } else if (dayRecord.status === 'WEEKLY_PASS') {
-                  hasPass = true;
-                }
+              if (failRecords.length > 0) {
+                weeklyContent = `🚨${failRecords.length}`;
+                weeklyClass = 'status-x';
+              } else if (passRecords.length > 0) {
+                weeklyContent = '✅';
+                weeklyClass = 'status-o';
               }
-            });
-
-            if (failCount > 0) {
-              weeklyContent = `🚨${failCount}`;
-              weeklyClass = 'status-x';
-            } else if (hasPass) {
-              weeklyContent = '✅';
-              weeklyClass = 'status-o';
             }
 
             tbody += `<td class="weekly-column ${weeklyClass}">${weeklyContent}</td>`;
@@ -591,15 +590,19 @@
       const feedItems = [];
 
       Object.keys(globalData).forEach(name => {
-        const records = globalData[name].기록;
-        Object.keys(records).forEach(day => {
-          const record = records[day];
-          if (record.status === 'O' && record.files && record.files.length > 0) {
-            feedItems.push({
-              name: name,
-              day: parseInt(day),
-              files: record.files,
-              timestamp: new Date(today.getFullYear(), today.getMonth(), parseInt(day))
+        const dayRecords = globalData[name].기록;
+        Object.keys(dayRecords).forEach(day => {
+          const records = dayRecords[day];
+          if (Array.isArray(records)) {
+            records.forEach(record => {
+              if (record.status === 'O' && record.files && record.files.length > 0) {
+                feedItems.push({
+                  name: name,
+                  day: parseInt(day),
+                  files: record.files,
+                  timestamp: new Date(today.getFullYear(), today.getMonth(), parseInt(day))
+                });
+              }
             });
           }
         });
@@ -711,41 +714,45 @@
         let hasContent = false;
 
         for (const name of Object.keys(globalData)) {
-          const record = globalData[name].기록[day];
+          const records = globalData[name].기록[day];
 
-          if (record) {
-            if (record.status === 'O' && record.files && record.files.length > 0) {
-              hasContent = true;
-              text += `${name}:\n`;
+          if (records && Array.isArray(records)) {
+            const normalRecord = records.find(r => r.status === 'O' || r.status === 'LONG_OFF');
 
-              for (const file of record.files) {
-                const fileId = extractFileId(file.url);
+            if (normalRecord) {
+              if (normalRecord.status === 'O' && normalRecord.files && normalRecord.files.length > 0) {
+                hasContent = true;
+                text += `${name}:\n`;
 
-                if (fileId) {
-                  try {
-                    const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
-                    const result = await response.json();
+                for (const file of normalRecord.files) {
+                  const fileId = extractFileId(file.url);
 
-                    if (!result.error && result.content) {
-                      text += `  📄 ${file.name}:\n`;
-                      const lines = result.content.split('\n');
-                      lines.forEach(line => {
-                        text += `     ${line}\n`;
-                      });
-                    } else {
-                      text += `  📄 ${file.name}: (내용을 가져올 수 없음)\n`;
+                  if (fileId) {
+                    try {
+                      const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
+                      const result = await response.json();
+
+                      if (!result.error && result.content) {
+                        text += `  📄 ${file.name}:\n`;
+                        const lines = result.content.split('\n');
+                        lines.forEach(line => {
+                          text += `     ${line}\n`;
+                        });
+                      } else {
+                        text += `  📄 ${file.name}: (내용을 가져올 수 없음)\n`;
+                      }
+                    } catch (error) {
+                      text += `  📄 ${file.name}: (오류)\n`;
                     }
-                  } catch (error) {
-                    text += `  📄 ${file.name}: (오류)\n`;
+                  } else {
+                    text += `  📄 ${file.name}\n`;
                   }
-                } else {
-                  text += `  📄 ${file.name}\n`;
                 }
+                text += '\n';
+              } else if (normalRecord.status === 'LONG_OFF') {
+                hasContent = true;
+                text += `${name}: 장기오프 (${normalRecord.reason || '사유 없음'})\n\n`;
               }
-              text += '\n';
-            } else if (record.status === 'LONG_OFF') {
-              hasContent = true;
-              text += `${name}: 장기오프 (${record.reason || '사유 없음'})\n\n`;
             } else {
               hasContent = true;
               text += `${name}: 미제출\n\n`;
