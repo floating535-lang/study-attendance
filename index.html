@@ -34,7 +34,7 @@
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
       padding: 20px;
     }
@@ -103,7 +103,6 @@
       font-size: 1.5em;
     }
 
-    /* 출석표 스타일 */
     .table-wrapper {
       overflow-x: auto;
     }
@@ -111,12 +110,12 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     th,
     td {
-      padding: 10px;
+      padding: 8px 4px;
       text-align: center;
       border: 1px solid var(--border);
     }
@@ -137,25 +136,29 @@
     .status-o {
       color: var(--primary);
       font-weight: bold;
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .status-long-off {
       color: var(--info);
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .status-x {
       color: var(--danger);
       font-weight: bold;
-      font-size: 18px;
+      font-size: 14px;
     }
 
     .status-future {
       color: #ccc;
     }
 
-    /* 범례 */
+    .weekly-column {
+      background-color: #fff8e1 !important;
+      border-left: 2px solid var(--warning) !important;
+    }
+
     .legend {
       display: flex;
       gap: 20px;
@@ -173,11 +176,10 @@
     }
 
     .legend-icon {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
     }
 
-    /* 피드 스타일 */
     .feed-item {
       display: flex;
       gap: 15px;
@@ -254,7 +256,6 @@
       font-size: 16px;
     }
 
-    /* 요약 테이블 */
     .summary-table {
       width: 100%;
     }
@@ -263,7 +264,6 @@
       background: var(--primary-dark);
     }
 
-    /* 버튼 */
     .btn {
       padding: 10px 20px;
       background: var(--primary);
@@ -289,15 +289,6 @@
       transform: translateY(0);
     }
 
-    .btn-secondary {
-      background: var(--info);
-    }
-
-    .btn-secondary:hover {
-      background: #1976D2;
-    }
-
-    /* 로딩 스피너 */
     .loading {
       text-align: center;
       padding: 40px;
@@ -324,36 +315,6 @@
       }
     }
 
-    /* 반응형 */
-    @media (max-width: 768px) {
-      .container {
-        padding: 10px;
-      }
-
-      header h1 {
-        font-size: 1.5em;
-      }
-
-      .tabs {
-        overflow-x: auto;
-      }
-
-      .tab {
-        padding: 10px 16px;
-        font-size: 14px;
-      }
-
-      table {
-        font-size: 12px;
-      }
-
-      th,
-      td {
-        padding: 6px;
-      }
-    }
-
-    /* 토스트 알림 */
     .toast {
       position: fixed;
       bottom: 20px;
@@ -373,6 +334,25 @@
       opacity: 1;
       transform: translateY(0);
     }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+
+      header h1 {
+        font-size: 1.5em;
+      }
+
+      table {
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        padding: 4px 2px;
+      }
+    }
   </style>
 </head>
 
@@ -382,19 +362,16 @@
   </header>
 
   <div class="container">
-    <!-- 탭 네비게이션 -->
     <div class="tabs">
       <button class="tab active" onclick="switchTab('attendance')">📊 출석표</button>
       <button class="tab" onclick="switchTab('feed')">📰 스터디 피드</button>
       <button class="tab" onclick="switchTab('summary')">📈 월간 요약</button>
     </div>
 
-    <!-- 출석표 탭 -->
     <div id="attendance" class="tab-content active">
       <div class="card">
         <h2>출석 현황</h2>
 
-        <!-- 범례 -->
         <div class="legend">
           <div class="legend-item">
             <span class="legend-icon status-o">✓</span>
@@ -423,7 +400,6 @@
       </div>
     </div>
 
-    <!-- 스터디 피드 탭 -->
     <div id="feed" class="tab-content">
       <div class="card">
         <h2>스터디 피드</h2>
@@ -431,7 +407,6 @@
       </div>
     </div>
 
-    <!-- 월간 요약 탭 -->
     <div id="summary" class="tab-content">
       <div class="card">
         <h2>월간 요약</h2>
@@ -463,26 +438,21 @@
     </div>
   </div>
 
-  <!-- 로딩 표시 -->
   <div id="loading" class="loading">
     <div class="spinner"></div>
     <p>데이터를 불러오는 중...</p>
   </div>
 
-  <!-- 토스트 알림 -->
   <div id="toast" class="toast"></div>
 
   <script>
-    // 전역 변수
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhPLfmr85OkT0U6oWBGIrXlwyPJ4G1auTJUqXk4gHeK0FCABVn1QSLSx1ukL0b1WaX/exec'; // 실제 웹앱 URL로 변경 필요
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhPLfmr85OkT0U6oWBGIrXlwyPJ4G1auTJUqXk4gHeK0FCABVn1QSLSx1ukL0b1WaX/exec';
     let globalData = {};
 
-    // 페이지 로드 시 데이터 가져오기
     window.addEventListener('DOMContentLoaded', () => {
       fetchData();
     });
 
-    // 데이터 가져오기
     async function fetchData() {
       try {
         const response = await fetch(`${SCRIPT_URL}?format=json`);
@@ -507,18 +477,14 @@
       }
     }
 
-    // 탭 전환
     function switchTab(tabName) {
-      // 모든 탭과 콘텐츠 비활성화
       document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-      // 선택된 탭 활성화
       event.target.classList.add('active');
       document.getElementById(tabName).classList.add('active');
     }
 
-    // 출석표 렌더링
     function renderAttendanceTable() {
       const table = document.getElementById('attendanceTable');
       const today = new Date();
@@ -526,14 +492,20 @@
       const month = today.getMonth();
       const lastDay = new Date(year, month + 1, 0).getDate();
 
-      // 헤더 생성
-      let thead = '<thead><tr><th>이름</th><th>이번 주<br>진행</th>';
+      // 헤더 생성 (주차별 결산 칸 포함)
+      let thead = '<thead><tr><th rowspan="2">이름</th><th rowspan="2">이번주<br>진행</th>';
+
       for (let d = 1; d <= lastDay; d++) {
         const date = new Date(year, month, d);
         const dayName = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
         const isToday = d === today.getDate();
         const style = isToday ? 'background-color: #e8f5e9; color: var(--primary-dark);' : '';
         thead += `<th style="${style}">${d}<br><small>${dayName}</small></th>`;
+
+        // 일요일 뒤에 주간 결산 칸 추가
+        if (dayName === '일') {
+          thead += '<th class="weekly-column"><small>주간</small><br>결산</th>';
+        }
       }
       thead += '</tr></thead>';
 
@@ -550,20 +522,21 @@
           <td style="${progressStyle}">${progressText}</td>`;
 
         for (let d = 1; d <= lastDay; d++) {
+          const date = new Date(year, month, d);
+          const dayName = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
           const record = globalData[name].기록[d];
+
           let cellContent = '<span style="color:#eee;">-</span>';
           let cellClass = '';
 
-          if (record) {
+          // 일반 출석 기록 표시 (WEEKLY_FAIL/PASS 제외)
+          if (record && record.status !== 'WEEKLY_FAIL' && record.status !== 'WEEKLY_PASS') {
             if (record.status === 'O') {
               cellContent = '✓';
               cellClass = 'status-o';
             } else if (record.status === 'LONG_OFF') {
               cellContent = '🏝️';
               cellClass = 'status-long-off';
-            } else if (record.status === 'WEEKLY_FAIL') {
-              cellContent = '🚨';
-              cellClass = 'status-x';
             } else if (record.status === 'MISSING') {
               cellContent = '·';
               cellClass = 'status-future';
@@ -571,6 +544,39 @@
           }
 
           tbody += `<td class="${cellClass}">${cellContent}</td>`;
+
+          // 일요일 뒤에 주간 결산 칸 추가
+          if (dayName === '일') {
+            let weeklyContent = '<span style="color:#ddd;">-</span>';
+            let weeklyClass = '';
+
+            // 해당 일요일의 모든 기록 확인하여 WEEKLY_FAIL/PASS 개수 세기
+            const allDayRecords = globalData[name].기록;
+            let failCount = 0;
+            let hasPass = false;
+
+            // 같은 날짜(일요일)의 모든 상태 확인
+            Object.keys(allDayRecords).forEach(dayKey => {
+              if (parseInt(dayKey) === d) {
+                const dayRecord = allDayRecords[dayKey];
+                if (dayRecord.status === 'WEEKLY_FAIL') {
+                  failCount++;
+                } else if (dayRecord.status === 'WEEKLY_PASS') {
+                  hasPass = true;
+                }
+              }
+            });
+
+            if (failCount > 0) {
+              weeklyContent = `🚨${failCount}`;
+              weeklyClass = 'status-x';
+            } else if (hasPass) {
+              weeklyContent = '✅';
+              weeklyClass = 'status-o';
+            }
+
+            tbody += `<td class="weekly-column ${weeklyClass}">${weeklyContent}</td>`;
+          }
         }
         tbody += '</tr>';
       });
@@ -579,13 +585,11 @@
       table.innerHTML = thead + tbody;
     }
 
-    // 스터디 피드 렌더링
     function renderFeed() {
       const feedList = document.getElementById('feedList');
       const today = new Date();
       const feedItems = [];
 
-      // 모든 멤버의 기록을 날짜 역순으로 수집
       Object.keys(globalData).forEach(name => {
         const records = globalData[name].기록;
         Object.keys(records).forEach(day => {
@@ -601,10 +605,8 @@
         });
       });
 
-      // 날짜 내림차순 정렬
       feedItems.sort((a, b) => b.timestamp - a.timestamp);
 
-      // HTML 생성
       let html = '';
       feedItems.forEach(item => {
         const dateStr = `${today.getMonth() + 1}월 ${item.day}일`;
@@ -615,7 +617,6 @@
           let icon = '📄';
           let displayName = file.name;
 
-          // 파일 타입에 따른 아이콘 및 이름 처리
           const lowerName = file.name.toLowerCase();
           if (lowerName.endsWith('.jpg') || lowerName.endsWith('.png') || lowerName.endsWith('.jpeg')) {
             icon = '🖼️';
@@ -654,7 +655,6 @@
       feedList.innerHTML = html;
     }
 
-    // 월간 요약 렌더링
     function renderSummary() {
       const tbody = document.getElementById('summaryBody');
       let html = '';
@@ -686,22 +686,18 @@
       tbody.innerHTML = html;
     }
 
-    // URL에서 파일 ID 추출
     function extractFileId(url) {
       if (!url) return null;
 
-      // https://drive.google.com/file/d/FILE_ID/view 형식
       let match = url.match(/\/file\/d\/([^\/]+)/);
       if (match) return match[1];
 
-      // https://drive.google.com/open?id=FILE_ID 형식
       match = url.match(/[?&]id=([^&]+)/);
       if (match) return match[1];
 
       return null;
     }
 
-    // 일일 브리핑 복사 (파일 내용 포함)
     async function copyDailyBriefing() {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -714,7 +710,6 @@
         let text = `[${month}/${day} 어제의 공부 토픽 🔥]\n\n`;
         let hasContent = false;
 
-        // 각 멤버별로 처리
         for (const name of Object.keys(globalData)) {
           const record = globalData[name].기록[day];
 
@@ -723,7 +718,6 @@
               hasContent = true;
               text += `${name}:\n`;
 
-              // 각 파일의 내용 가져오기
               for (const file of record.files) {
                 const fileId = extractFileId(file.url);
 
@@ -767,7 +761,6 @@
           return;
         }
 
-        // 클립보드에 복사
         await navigator.clipboard.writeText(text);
         showToast('✅ 일일 브리핑이 클립보드에 복사되었습니다!', 3000);
 
@@ -777,7 +770,6 @@
       }
     }
 
-    // 토스트 알림 표시
     function showToast(message, duration) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
