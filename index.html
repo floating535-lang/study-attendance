@@ -363,10 +363,14 @@
     </div>
 
     <script>
-        // ⚠️ 여기에 실제 값을 입력하세요!
+        // ⚠️ 설정: JSON 파일 ID
         const JSON_FILE_IDS = {
-            attendance: 'YOUR_ATTENDANCE_JSON_FILE_ID',  // attendance_summary_{년월}.json
-            weekly: 'YOUR_WEEKLY_JSON_FILE_ID'           // weekly_summary_{년월}.json
+            // 👇 이 부분에 일간 출석 파일 ID를 입력하세요!
+            // Apps Script에서 JSON파일ID확인() 실행하면 나옵니다
+            attendance: '1SDAnl8FX0CIJJzLoqyGSt5A4zOPIUMTf',
+
+            // ✅ 주간 집계 파일 ID (설정 완료)
+            weekly: '1wEb0HMqO8wAP4txtVrK3r9kTts7U6gwM'
         };
 
         const now = new Date();
@@ -480,7 +484,7 @@
 
                 const yearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
                 const baseUrl = 'https://drive.google.com/uc?export=download&id=';
-                
+
                 const attendanceUrl = `${baseUrl}${JSON_FILE_IDS.attendance}`;
                 const weeklyUrl = `${baseUrl}${JSON_FILE_IDS.weekly}`;
 
