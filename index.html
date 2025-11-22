@@ -50,14 +50,18 @@
             margin: 5px 0;
         }
 
-        /* 주간 통계 스타일 */
+        /* 🆕 주간 통계 스타일 */
         #weeklySummary {
             margin-top: 50px;
+            padding: 30px;
+            background: #f9f9f9;
+            border-radius: 10px;
         }
         #weeklySummary table {
             font-size: 14px;
             width: 100%;
             border-collapse: collapse;
+            background: white;
         }
         #weeklySummary th,
         #weeklySummary td {
@@ -305,9 +309,10 @@
         <div class="rules-box">
             <h3>📋 출석 규칙</h3>
             <ul>
-                <li>✅ <strong>출석</strong>: 날짜 폴더안에 공부한 내용이 어떤 형식으로라도 들어가 있는 경우</li>
-                <li>🏝️ <strong>장기오프</strong>: 구글 폼으로 사전 신청한 장기 오프</li>
-                <li>✗ <strong>결석</strong>: 파일 미제출</li>
+                <li>✅ <strong>출석</strong>: 날짜 폴더안에 공부한 내용이 어떤 형식으로라도 들어가 있는 경우(사진, md파일, pdf 등 모두 가능)</li>
+                <li>🏖️ <strong>오프</strong>: OFF.md 파일로 오프 선언 (주당 최대 3회)</li>
+                <li>🏝️ <strong>장기오프</strong>: 구글 폼으로 사전 신청한 장기 오프(장기오프신청 구글폼 주소: https://forms.gle/vk4hWPfjaDCF4Kxe7)</li>
+                <li>✗ <strong>결석</strong>: 파일 미제출 (출석은 하였으나 여러 원인으로 인한 인증 실패의 경우 방장에게 말씀주시면 수동으로 체크해드립니다)</li>
                 <li>⚠️ <strong>경고</strong>: 3회 결석 시 경고</li>
                 <li>🚨 <strong>벌칙</strong>: 4회 이상 결석 시 벌칙 대상</li>
             </ul>
@@ -327,6 +332,10 @@
             <div class="legend-item">
                 <div class="legend-box attended">✓</div>
                 <span>출석</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box off">🏖️</div>
+                <span>오프</span>
             </div>
             <div class="legend-item">
                 <div class="legend-box long-off">🏝️</div>
@@ -355,28 +364,60 @@
 
         <!-- 메인 콘텐츠 -->
         <div id="contentContainer" style="display: none;">
-            <div id="attendanceContent">
-                <!-- 일간 출석표가 여기에 표시됩니다 -->
-                <!-- floating535-lang/study-attendance의 기존 index.html 코드를 사용하세요 -->
+            <table>
+                <thead>
+                    <tr id="dateHeaders">
+                        <th class="member-name">조원명</th>
+                        <!-- 날짜별 헤더는 JS로 생성 -->
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                    <!-- 데이터는 JS로 생성 -->
+                </tbody>
+            </table>
+
+            <!-- 요약 정보 -->
+            <div class="summary">
+                <h2>📊 <span id="summaryMonth"></span> 출석 요약 (1일 ~ <span id="totalDays">0</span>일)</h2>
+                <div class="member-summary" id="memberSummary">
+                    <!-- 조원별 요약은 JS로 생성 -->
+                </div>
             </div>
+
+            <!-- 이번 주 오프 현황 -->
+            <div class="summary" style="margin-top: 20px; background-color: #fff9c4;">
+                <h2>🏖️ 이번 주 오프 현황 (<span id="weekRange"></span>)</h2>
+                <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                    ⚠️ 주당 최대 3회까지 오프 가능 | 3회 초과 시 모두 결석 처리
+                </div>
+                <div class="member-summary" id="weeklyOffSummary">
+                    <!-- 이번 주 오프 현황은 JS로 생성 -->
+                </div>
+            </div>
+
+            <!-- 🆕 주간 출석 집계 -->
+            <div id="weeklySummary"></div>
         </div>
     </div>
 
     <script>
-        // ⚠️ 설정: JSON 파일 ID
-        const JSON_FILE_IDS = {
-            // 👇 이 부분에 일간 출석 파일 ID를 입력하세요!
-            // Apps Script에서 JSON파일ID확인() 실행하면 나옵니다
-            attendance: '1SDAnl8FX0CIJJzLoqyGSt5A4zOPIUMTf',
-
-            // ✅ 주간 집계 파일 ID (설정 완료)
-            weekly: '1wEb0HMqO8wAP4txtVrK3r9kTts7U6gwM'
-        };
-
+        // ===== 설정 =====
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwhPLfmr85OkT0U6oWBGIrXlwyPJ4G1auTJUqXk4gHeK0FCABVn1QSLSx1ukL0b1WaX/exec';
         const now = new Date();
         const year = now.getFullYear();
-        const month = now.getMonth();
+        const month = now.getMonth(); // 0-based (0=1월, 10=11월)
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
         const currentDay = now.getDate();
+
+        // ===== 유틸리티 함수 =====
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${y}-${m}-${d} ${h}:${min}`;
+        }
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -384,10 +425,37 @@
             return div.innerHTML;
         }
 
-        /**
-         * 주간 통계 렌더링
-         */
+        // ===== 이번 주 계산 함수 =====
+        function getThisWeekRange() {
+            const today = new Date(year, month, currentDay);
+            const dayOfWeek = today.getDay(); // 0(일) ~ 6(토)
+
+            // 이번 주 월요일 계산 (월요일 시작 기준)
+            const monday = new Date(today);
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // 일요일이면 -6, 아니면 1-dayOfWeek
+            monday.setDate(today.getDate() + diff);
+
+            // 이번 주 일요일 계산
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            return {
+                start: monday.getDate(),
+                end: sunday.getDate(),
+                startsInPrevMonth: monday.getMonth() !== month,
+                prevMonthStart: monday.getMonth() !== month ? monday.getDate() : null,
+                prevMonthYear: monday.getMonth() !== month ? monday.getFullYear() : null,
+                prevMonth: monday.getMonth() !== month ? monday.getMonth() : null
+            };
+        }
+
+        // ===== 🆕 주간 통계 렌더링 함수 =====
         function renderWeeklySummary(weeklyData) {
+            if (!weeklyData || weeklyData.error) {
+                console.log('주간 통계 데이터 없음:', weeklyData);
+                return;
+            }
+
             let weeklyContainer = document.getElementById('weeklySummary');
 
             if (!weeklyContainer) {
@@ -470,77 +538,456 @@
             weeklyContainer.innerHTML = html;
         }
 
-        /**
-         * 데이터 로드 및 렌더링
-         */
-        async function loadData() {
-            const loadingDiv = document.getElementById('loadingIndicator');
-            const errorDiv = document.getElementById('errorContainer');
-            const contentDiv = document.getElementById('contentContainer');
+        // ===== 테이블 헤더 생성 =====
+        function renderDateHeaders() {
+            const headerRow = document.getElementById('dateHeaders');
 
-            try {
-                loadingDiv.style.display = 'block';
-                errorDiv.style.display = 'none';
+            // 날짜별 헤더
+            for (let i = 1; i <= daysInMonth; i++) {
+                const th = document.createElement('th');
+                th.textContent = i;
 
-                const yearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
-                const baseUrl = 'https://drive.google.com/uc?export=download&id=';
-
-                const attendanceUrl = `${baseUrl}${JSON_FILE_IDS.attendance}`;
-                const weeklyUrl = `${baseUrl}${JSON_FILE_IDS.weekly}`;
-
-                console.log('출석 데이터 로딩:', attendanceUrl);
-                const attendanceResponse = await fetch(attendanceUrl);
-                if (!attendanceResponse.ok) {
-                    throw new Error(`출석 데이터 로드 실패: ${attendanceResponse.status}`);
+                // 오늘 날짜 강조
+                if (i === currentDay) {
+                    th.style.backgroundColor = '#FFA726';
                 }
-                const attendanceData = await attendanceResponse.json();
-                console.log('출석 데이터 로드 성공');
 
+                headerRow.appendChild(th);
+            }
+
+            // 통계 헤더
+            const totalAttendedHeader = document.createElement('th');
+            totalAttendedHeader.textContent = '출석';
+            totalAttendedHeader.style.backgroundColor = '#66BB6A';
+            headerRow.appendChild(totalAttendedHeader);
+
+            const totalOffHeader = document.createElement('th');
+            totalOffHeader.textContent = '오프';
+            totalOffHeader.style.backgroundColor = '#FDD835';
+            headerRow.appendChild(totalOffHeader);
+
+            const totalLongOffHeader = document.createElement('th');
+            totalLongOffHeader.textContent = '장기오프';
+            totalLongOffHeader.style.backgroundColor = '#42A5F5';
+            headerRow.appendChild(totalLongOffHeader);
+
+            const totalAbsentHeader = document.createElement('th');
+            totalAbsentHeader.textContent = '결석';
+            totalAbsentHeader.style.backgroundColor = '#EF5350';
+            headerRow.appendChild(totalAbsentHeader);
+        }
+
+        // ===== 출석표 렌더링 ===== (기존 코드 유지)
+        function renderAttendanceTable(data, prevMonthData = null) {
+            const tableBody = document.getElementById('attendanceTableBody');
+            const memberSummaryDiv = document.getElementById('memberSummary');
+
+            tableBody.innerHTML = '';
+            memberSummaryDiv.innerHTML = '';
+
+            document.getElementById('totalDays').textContent = currentDay;
+
+            for (const memberName in data) {
+                const member = data[memberName];
+                const row = tableBody.insertRow();
+
+                const nameCell = row.insertCell();
+                nameCell.textContent = memberName;
+                nameCell.className = 'member-name-cell';
+                nameCell.style.fontWeight = 'bold';
+                nameCell.style.textAlign = 'left';
+                nameCell.style.paddingLeft = '15px';
+                nameCell.title = memberName;
+
+                let calculatedAttendance = 0;
+                let calculatedOff = 0;
+                let calculatedLongOff = 0;
+                let calculatedAbsence = 0;
+                const offExcessAbsenceDates = [];
+
+                let thisWeekOff = 0;
+                const weekRange = getThisWeekRange();
+                const thisWeekOffDates = [];
+
+                if (weekRange.startsInPrevMonth && prevMonthData && prevMonthData[memberName]) {
+                    const prevMember = prevMonthData[memberName];
+                    const prevMonthDays = new Date(weekRange.prevMonthYear, weekRange.prevMonth + 1, 0).getDate();
+
+                    for (let prevDay = weekRange.prevMonthStart; prevDay <= prevMonthDays; prevDay++) {
+                        const prevDayStatus = prevMember.기록 && prevMember.기록[prevDay.toString()];
+                        if (prevDayStatus && prevDayStatus.status === 'OFF') {
+                            thisWeekOff++;
+                            thisWeekOffDates.push({
+                                month: weekRange.prevMonth,
+                                day: prevDay,
+                                isPrevMonth: true
+                            });
+                        }
+                    }
+                }
+
+                for (let i = 1; i <= currentDay; i++) {
+                    const dayStatus = member.기록 && member.기록[i.toString()];
+                    if (dayStatus && dayStatus.status === 'OFF') {
+                        let isThisWeek = false;
+                        if (weekRange.startsInPrevMonth) {
+                            if (i >= 1 && i <= weekRange.end) {
+                                isThisWeek = true;
+                            }
+                        } else {
+                            if (i >= weekRange.start && i <= weekRange.end) {
+                                isThisWeek = true;
+                            }
+                        }
+
+                        if (isThisWeek) {
+                            thisWeekOff++;
+                            thisWeekOffDates.push({
+                                month: month,
+                                day: i,
+                                isPrevMonth: false
+                            });
+                        }
+                    }
+                }
+
+                const convertToAbsent = new Set();
+                let excessOffCount = 0;
+                if (thisWeekOff > 3) {
+                    excessOffCount = thisWeekOff - 3;
+                    const excessDates = thisWeekOffDates.slice(-excessOffCount);
+                    excessDates.forEach(date => {
+                        convertToAbsent.add(`${date.month}-${date.day}-${date.isPrevMonth}`);
+                    });
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayStatus = member.기록 && member.기록[i.toString()];
+                    const cell = row.insertCell();
+
+                    if (i > currentDay) {
+                        cell.textContent = '-';
+                        cell.classList.add('future');
+                        cell.title = '미래 날짜';
+                    } else if (dayStatus) {
+                        if (dayStatus.status === 'O') {
+                            calculatedAttendance++;
+                            const checkmark = document.createElement('span');
+                            checkmark.textContent = '✓';
+                            checkmark.style.color = '#2e7d32';
+                            checkmark.style.fontWeight = 'bold';
+                            cell.appendChild(checkmark);
+
+                            if (dayStatus.link) {
+                                const link = document.createElement('a');
+                                link.href = dayStatus.link;
+                                link.textContent = '📁';
+                                link.className = 'download-icon';
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                const fileCount = dayStatus.fileCount || 1;
+                                link.title = `폴더 열기 (${fileCount}개 파일)`;
+                                cell.appendChild(link);
+                            }
+                            cell.classList.add('attended');
+                        } else if (dayStatus.status === 'OFF') {
+                            const dateKey = `${month}-${i}-false`;
+                            const isConvertedToAbsent = convertToAbsent.has(dateKey);
+
+                            if (isConvertedToAbsent) {
+                                calculatedAbsence++;
+                                cell.textContent = '✗';
+                                cell.classList.add('absent');
+                                cell.title = '결석 (이번 주 오프 한도 초과)';
+                            } else {
+                                calculatedOff++;
+                                cell.textContent = '🏖️';
+                                cell.classList.add('off');
+                                cell.title = '오프';
+                            }
+                        } else if (dayStatus.status === 'LONG_OFF') {
+                            calculatedLongOff++;
+                            cell.textContent = '🏝️';
+                            cell.classList.add('long-off');
+                            const reason = dayStatus.reason || '장기오프';
+                            cell.title = reason;
+                        } else {
+                            calculatedAbsence++;
+                            cell.textContent = '✗';
+                            cell.classList.add('absent');
+
+                            if (dayStatus.reason && dayStatus.reason.includes('오프') && dayStatus.reason.includes('초과')) {
+                                cell.title = '결석 (주간 오프 3회 초과)';
+                                offExcessAbsenceDates.push(i);
+                            } else {
+                                cell.title = '결석';
+                            }
+                        }
+                    } else {
+                        const currentHour = now.getHours();
+                        const isToday = (i === currentDay);
+                        const isYesterday = (i === currentDay - 1 && currentDay - 1 >= 1);
+
+                        if ((isToday || (isYesterday && currentHour < 3))) {
+                            cell.textContent = '⏰';
+                            cell.classList.add('future');
+                            cell.title = '제출 대기 중 (익일 새벽 3시까지)';
+                        } else {
+                            calculatedAbsence++;
+                            cell.textContent = '✗';
+                            cell.classList.add('absent');
+                            cell.title = '인증 미제출';
+                        }
+                    }
+                }
+
+                const totalAttendedCell = row.insertCell();
+                totalAttendedCell.textContent = calculatedAttendance;
+                totalAttendedCell.style.fontWeight = 'bold';
+                totalAttendedCell.style.backgroundColor = '#e8f5e9';
+
+                const totalOffCell = row.insertCell();
+                totalOffCell.textContent = calculatedOff;
+                totalOffCell.style.fontWeight = 'bold';
+                totalOffCell.style.backgroundColor = '#fff9c4';
+
+                const totalLongOffCell = row.insertCell();
+                totalLongOffCell.textContent = calculatedLongOff;
+                totalLongOffCell.style.fontWeight = 'bold';
+                totalLongOffCell.style.backgroundColor = '#e1f5fe';
+
+                const totalAbsentCell = row.insertCell();
+                totalAbsentCell.textContent = calculatedAbsence;
+                totalAbsentCell.style.fontWeight = 'bold';
+
+                if (calculatedAbsence >= 4) {
+                    totalAbsentCell.style.backgroundColor = '#ffcdd2';
+                } else if (calculatedAbsence === 3) {
+                    totalAbsentCell.style.backgroundColor = '#ffe0b2';
+                }
+
+                const memberCard = document.createElement('div');
+                memberCard.className = 'member-card';
+
+                if (calculatedAbsence >= 4) {
+                    memberCard.classList.add('penalty');
+                } else if (calculatedAbsence === 3) {
+                    memberCard.classList.add('warning');
+                }
+
+                let statusText = '';
+                if (calculatedAbsence >= 4) {
+                    statusText = `<span class="penalty-text">🚨 벌칙 대상 (${calculatedAbsence}회 결석)</span>`;
+                } else if (calculatedAbsence === 3) {
+                    statusText = `<span class="warning-text">⚠️ 경고 (${calculatedAbsence}회 결석)</span>`;
+                } else {
+                    statusText = `<span style="color: #4CAF50;">✅ 정상</span>`;
+                }
+
+                let weekOffText = '';
+                if (thisWeekOff > 3) {
+                    const convertedDates = thisWeekOffDates.slice(-excessOffCount)
+                        .map(d => `${d.month + 1}/${d.day}`)
+                        .join(', ');
+                    weekOffText = `<br><span style="color: #f44336; font-weight: bold;">🚨 이번 주 오프: ${thisWeekOff}/3회 (한도 초과)</span>`;
+                    weekOffText += `<br><span style="color: #f44336; font-size: 13px;">→ 결석 처리: ${convertedDates} (${excessOffCount}회)</span>`;
+                } else if (thisWeekOff >= 3) {
+                    weekOffText = `<br><span style="color: #f57f17; font-weight: bold;">⚠️ 이번 주 오프: ${thisWeekOff}/3회 (한도 도달)</span>`;
+                } else if (thisWeekOff >= 2) {
+                    weekOffText = `<br><span style="color: #ff9800;">이번 주 오프: ${thisWeekOff}/3회</span>`;
+                } else if (thisWeekOff >= 1) {
+                    weekOffText = `<br><span style="color: #757575;">이번 주 오프: ${thisWeekOff}/3회</span>`;
+                }
+
+                let offExcessText = '';
+                if (offExcessAbsenceDates.length > 0) {
+                    const datesText = offExcessAbsenceDates.map(d => d + '일').join(', ');
+                    offExcessText = `<br><span style="color: #f44336; font-size: 13px;">🚨 오프 초과 결석: ${datesText}</span>`;
+                }
+
+                memberCard.innerHTML = `
+                    <strong style="font-size: 16px;">${escapeHtml(memberName)}</strong><br>
+                    출석: <strong style="color: #2e7d32;">${calculatedAttendance}회</strong> /
+                    오프: <strong class="off-text">${calculatedOff}회</strong> /
+                    장기오프: <strong class="long-off-text">${calculatedLongOff}회</strong> /
+                    결석: <strong style="color: #c62828;">${calculatedAbsence}회</strong><br>
+                    ${statusText}${weekOffText}${offExcessText}
+                `;
+                memberSummaryDiv.appendChild(memberCard);
+            }
+
+            const weeklyOffSummaryDiv = document.getElementById('weeklyOffSummary');
+            weeklyOffSummaryDiv.innerHTML = '';
+
+            const weekRange = getThisWeekRange();
+            let weekRangeText = '';
+            if (weekRange.startsInPrevMonth) {
+                weekRangeText = `${weekRange.prevMonth + 1}/${weekRange.prevMonthStart} ~ ${month + 1}/${weekRange.end}`;
+            } else {
+                weekRangeText = `${month + 1}/${weekRange.start} ~ ${month + 1}/${weekRange.end}`;
+            }
+            document.getElementById('weekRange').textContent = weekRangeText;
+
+            for (const memberName in data) {
+                const member = data[memberName];
+                let thisWeekOff = 0;
+                const offDates = [];
+
+                if (weekRange.startsInPrevMonth && prevMonthData && prevMonthData[memberName]) {
+                    const prevMember = prevMonthData[memberName];
+                    const prevMonthDays = new Date(weekRange.prevMonthYear, weekRange.prevMonth + 1, 0).getDate();
+
+                    for (let prevDay = weekRange.prevMonthStart; prevDay <= prevMonthDays; prevDay++) {
+                        const prevDayStatus = prevMember.기록 && prevMember.기록[prevDay.toString()];
+                        if (prevDayStatus && prevDayStatus.status === 'OFF') {
+                            thisWeekOff++;
+                            offDates.push({
+                                display: `${weekRange.prevMonth + 1}/${prevDay}`,
+                                month: weekRange.prevMonth,
+                                day: prevDay
+                            });
+                        }
+                    }
+                }
+
+                for (let i = 1; i <= currentDay; i++) {
+                    const dayStatus = member.기록 && member.기록[i.toString()];
+                    if (dayStatus && dayStatus.status === 'OFF') {
+                        let isThisWeek = false;
+                        if (weekRange.startsInPrevMonth) {
+                            if (i >= 1 && i <= weekRange.end) {
+                                isThisWeek = true;
+                            }
+                        } else {
+                            if (i >= weekRange.start && i <= weekRange.end) {
+                                isThisWeek = true;
+                            }
+                        }
+
+                        if (isThisWeek) {
+                            thisWeekOff++;
+                            offDates.push({
+                                display: `${month + 1}/${i}`,
+                                month: month,
+                                day: i
+                            });
+                        }
+                    }
+                }
+
+                if (thisWeekOff > 0) {
+                    const weeklyCard = document.createElement('div');
+                    weeklyCard.className = 'member-card';
+
+                    if (thisWeekOff >= 3) {
+                        weeklyCard.classList.add('penalty');
+                    } else if (thisWeekOff >= 2) {
+                        weeklyCard.classList.add('warning');
+                    }
+
+                    const offDatesText = offDates.map(d => d.display).join(', ');
+
+                    let offStatusText = '';
+                    let offDatesDisplay = `<div style="margin-top: 8px; font-size: 14px; color: #666;">오프 사용일: <strong>${offDatesText}</strong></div>`;
+
+                    if (thisWeekOff > 3) {
+                        const excess = thisWeekOff - 3;
+                        const convertedDates = offDates.slice(-excess).map(d => d.display).join(', ');
+                        offStatusText = `<span style="color: #f44336; font-weight: bold;">🚨 한도 초과 (${thisWeekOff}/3회)</span><br><span style="color: #f44336;">→ 결석 처리: ${convertedDates}</span>`;
+                    } else if (thisWeekOff >= 3) {
+                        offStatusText = `<span style="color: #f44336; font-weight: bold;">🚨 한도 도달 (${thisWeekOff}/3회)</span>`;
+                    } else if (thisWeekOff >= 2) {
+                        offStatusText = `<span style="color: #ff9800; font-weight: bold;">⚠️ 주의 (${thisWeekOff}/3회)</span>`;
+                    } else {
+                        offStatusText = `<span style="color: #4CAF50;">✅ 정상 (${thisWeekOff}/3회)</span>`;
+                    }
+
+                    weeklyCard.innerHTML = `
+                        <strong style="font-size: 16px;">${escapeHtml(memberName)}</strong><br>
+                        ${offStatusText}
+                        ${offDatesDisplay}
+                    `;
+                    weeklyOffSummaryDiv.appendChild(weeklyCard);
+                }
+            }
+
+            if (weeklyOffSummaryDiv.children.length === 0) {
+                weeklyOffSummaryDiv.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">이번 주 오프를 사용한 조원이 없습니다.</div>';
+            }
+        }
+
+        // ===== 데이터 로드 =====
+        async function loadAttendanceData() {
+            try {
+                const yearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const dataUrl = `${WEB_APP_URL}?month=${yearMonth}`;
+
+                const response = await fetch(dataUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+
+                let prevMonthData = null;
+                const weekRange = getThisWeekRange();
+                if (weekRange.startsInPrevMonth) {
+                    const prevMonth = month === 0 ? 11 : month - 1;
+                    const prevYear = month === 0 ? year - 1 : year;
+                    const prevMonthUrl = `${WEB_APP_URL}?month=${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+
+                    try {
+                        const prevResponse = await fetch(prevMonthUrl);
+                        if (prevResponse.ok) {
+                            prevMonthData = await prevResponse.json();
+                        }
+                    } catch (error) {
+                        console.warn('전월 데이터 로드 실패:', error);
+                    }
+                }
+
+                // 🆕 주간 집계 데이터 로드
                 let weeklyData = null;
                 try {
+                    const weeklyUrl = `${WEB_APP_URL}?month=${yearMonth}&type=weekly`;
                     console.log('주간 통계 로딩:', weeklyUrl);
                     const weeklyResponse = await fetch(weeklyUrl);
                     if (weeklyResponse.ok) {
                         weeklyData = await weeklyResponse.json();
                         console.log('주간 통계 로드 성공:', weeklyData);
                     }
-                } catch (e) {
-                    console.log('주간 통계 로드 실패:', e);
+                } catch (error) {
+                    console.warn('주간 통계 로드 실패:', error);
                 }
 
-                // 기존 출석표 렌더링 (floating535-lang/study-attendance의 코드 사용)
-                // renderAttendanceTable(attendanceData, prevMonthData);
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('contentContainer').style.display = 'block';
 
-                contentDiv.innerHTML = `
-                    <h2 style="text-align: center;">일간 출석표 영역</h2>
-                    <p style="text-align: center; color: #666;">
-                        여기에 floating535-lang/study-attendance의 기존 출석표 렌더링 코드가 들어갑니다<br>
-                        renderAttendanceTable(attendanceData, prevMonthData) 호출
-                    </p>
-                `;
-                contentDiv.style.display = 'block';
+                renderAttendanceTable(data, prevMonthData);
 
-                // 주간 통계 렌더링
+                // 🆕 주간 통계 렌더링
                 if (weeklyData) {
                     renderWeeklySummary(weeklyData);
                 }
 
-                document.getElementById('currentMonth').textContent = `${year}년 ${month + 1}월`;
-                document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ko-KR');
-                loadingDiv.style.display = 'none';
+                document.getElementById('lastUpdate').textContent = formatDate(new Date());
 
             } catch (error) {
-                console.error('데이터 로드 오류:', error);
-                loadingDiv.style.display = 'none';
-                errorDiv.style.display = 'block';
-                errorDiv.querySelector('#errorMessage').innerHTML = `
-                    ${error.message}<br>
-                    <small>JSON 파일 ID를 확인하세요</small>
-                `;
+                console.error('데이터 로드 실패:', error);
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('errorContainer').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
             }
         }
 
-        window.addEventListener('DOMContentLoaded', loadData);
+        // ===== 초기화 =====
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentMonth').textContent = `${year}년 ${month + 1}월`;
+            document.getElementById('summaryMonth').textContent = `${month + 1}월`;
+            document.getElementById('totalDays').textContent = currentDay;
+
+            renderDateHeaders();
+            loadAttendanceData();
+        });
     </script>
 </body>
 </html>
